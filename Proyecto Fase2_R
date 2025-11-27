@@ -25,7 +25,6 @@ base_unificada <- base_unificada |>
     edad = as.integer(edad)
   ) |>
   distinct()
-write_csv(base_unificada, "C:\\Users\\Daniel\\Downloads\\base_unificada.csv")
 
 datos <- select(base_unificada, -last_col())
 
@@ -41,17 +40,19 @@ data <- datos %>%
 
 #PARTE 1 ARBOLES DE DECISION
 #Caso 1: Emergencias en la capital
-
-arbol1 <- rpart( causa_atencion ~ 
+datos_mayores_emergencias <- subset(data, tipo_consulta == 3)
+datos_mayores_emergencias <- subset(datos_mayores_emergencias, deptoresiden == 1)
+datos_mayores_emergencias <- subset(datos_mayores_emergencias, causa_atencion != 'A099')
+arbol1 <- rpart( sexo ~ 
                    edad +
                    mes + 
-                   sexo ,
-                 data = data, method = "class"
+                   causa_atencion ,
+                 data = datos_mayores_emergencias, method = "class"
 )
 rpart.plot(arbol1, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
            main ="Causa de atencion", cex = 0.5
            
-) 
+)
 
 
 
