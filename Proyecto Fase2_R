@@ -39,20 +39,49 @@ data <- datos %>%
   )
 
 #PARTE 1 ARBOLES DE DECISION
-#Caso 1: Emergencias en la capital
+#Caso 1: Emergencias en la capital - Rinofaringitis aguda [resfriado común]
 datos_mayores_emergencias <- subset(data, tipo_consulta == 3)
 datos_mayores_emergencias <- subset(datos_mayores_emergencias, deptoresiden == 1)
 datos_mayores_emergencias <- subset(datos_mayores_emergencias, causa_atencion != 'A099')
-arbol1 <- rpart( sexo ~ 
+arbol1 <- rpart( causa_atencion ~ 
                    edad +
-                   mes + 
-                   causa_atencion ,
+                   mes+
+                   sexo,
                  data = datos_mayores_emergencias, method = "class"
 )
 rpart.plot(arbol1, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
-           main ="Causa de atencion", cex = 0.5
+           main ="causa de atencion", cex = 0.5
            
 )
+#Una mujer con edad de 25 y que se haya enfermado en octubre
+persona1 <- data.frame(
+  edad = 25,
+  mes  = factor("10", levels = levels(datos_mayores_emergencias$mes)),
+  sexo = 2
+)
+
+result1 <- predict(arbol1, persona1,  type = "prob")
+sort(result1[1, ], decreasing = TRUE)[1:10] #Escoger solo el top 10 de casos
+
+#Hombre de 10 años, enfermo en julio
+persona2 <- data.frame(
+  edad = 10,
+  mes  = factor("7", levels = levels(datos_mayores_emergencias$mes)),
+  sexo = 1
+)
+
+result2 <- predict(arbol1, persona2,  type = "prob")
+sort(result2[1, ], decreasing = TRUE)[1:10] #Escoger solo el top 10 de casos
+
+#Mujer de 5 años, enferma en enero
+persona3 <- data.frame(
+  edad = 5,
+  mes  = factor("1", levels = levels(datos_mayores_emergencias$mes)),
+  sexo = 2
+)
+
+result3 <- predict(arbol1, persona3,  type = "prob")
+sort(result3[1, ], decreasing = TRUE)[1:10] #Escoger solo el top 10 de casos
 
 
 
