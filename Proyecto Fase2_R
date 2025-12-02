@@ -84,8 +84,57 @@ result3 <- predict(arbol1, persona3,  type = "prob")
 sort(result3[1, ], decreasing = TRUE)[1:10] #Escoger solo el top 10 de casos
 
 
+#Caso 2 para Gastroenteritis y colitis de origen no especificado
+datos_gastro <- subset(data, causa_atencion ==  "A099")
+datos_gastro <- datos_gastro[,c("edad","mes","deptoresiden","tipo_consulta")]
 
+arbol2 <- rpart( tipo_consulta ~ 
+                   edad +
+                   mes+
+                   deptoresiden,
+                 data = datos_gastro, method = "class"
+)
+rpart.plot(arbol2, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
+           main ="Tipo de consulta", cex = 0.5
+           
+)
+#Joven de 15 años, con consulta hecha en noviembre y en suchitepequez
+persona_g1 <- data.frame(
+  edad = 15,
+  mes  = factor("11", levels = levels(datos_gastro$mes)),
+  deptoresiden = 11
+)
 
+result <- predict(arbol2, persona_g1,  type = "prob")
+result
+
+#Adulto de 54 años, con consulta hecha en marzo y en Peten
+persona_g2 <- data.frame(
+  edad = 54,
+  mes  = factor("3", levels = levels(datos_gastro$mes)),
+  deptoresiden = 22
+)
+
+result <- predict(arbol2, persona_g1,  type = "prob")
+result
+
+#Caso 3: causas de atencion en xinkas
+datos_xinka <- subset(data, pueblo_pertenencia == 3)
+datos_xinka <- data[,c("edad","mes","tipo_consulta","causa_atencion","deptoresiden","sexo","pueblo_pertenencia")]
+
+arbol3 <- rpart( pueblo_pertenencia ~ 
+                   edad +
+                   mes+
+                   tipo_consulta +
+                   causa_atencion +
+                   deptoresiden+
+                   sexo,
+                 data = datos_xinka, method = "class"
+)
+rpart.plot(arbol3, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
+           main ="Pueblo pertenencia", cex = 0.5
+           
+)
 
 
 
