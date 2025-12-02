@@ -118,26 +118,114 @@ persona_g2 <- data.frame(
 result <- predict(arbol2, persona_g1,  type = "prob")
 result
 
-#Caso 3: causas de atencion en xinkas
-datos_xinka <- subset(data, pueblo_pertenencia == 3)
-datos_xinka <- data[,c("edad","mes","tipo_consulta","causa_atencion","deptoresiden","sexo","pueblo_pertenencia")]
+#Caso 3: La enfermedad de Acné vulgar en relación con el pueblo Xinka, el sexo y el tipo de consulta
+datos_xinka <- data %>%
+  transmute(
+    causa = ifelse(causa_atencion == "L700", 1, 0),
+    sexo,
+    pueblo_pertenencia,
+    tipo_consulta
+  ) %>%
+  na.omit()
 
-arbol3 <- rpart( pueblo_pertenencia ~ 
-                   edad +
-                   mes+
-                   tipo_consulta +
-                   causa_atencion +
-                   deptoresiden+
-                   sexo,
-                 data = datos_xinka, method = "class"
+datos_xinka$causa <- factor(datos_xinka$causa, levels = c(0,1),
+                            labels = c("No_L700","Si_L700"))
+
+table(datos_xinka$causa)
+set.seed(123)
+
+idx_1  <- which(datos_xinka$causa == "Si_L700")
+idx_0  <- which(datos_xinka$causa == "No_L700")
+
+
+n_1 <- length(idx_1)
+n_0_mostrar <- min(length(idx_0), n_1 * 4)
+
+idx_0_sub <- sample(idx_0, n_0_mostrar)
+
+datos_bal <- datos_xinka[c(idx_1, idx_0_sub), ]
+
+table(datos_bal$causa)
+
+arbol3 <- rpart(
+  causa ~ pueblo_pertenencia + sexo + tipo_consulta,
+  data   = datos_bal,
+  method = "class",
+  control = rpart.control(minbucket = 50, cp = 0.001)  
 )
+
 rpart.plot(arbol3, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
-           main ="Pueblo pertenencia", cex = 0.5
-           
+           main ="Causa", cex = 0.5)
+
+#Mujer, del pueblo xinka y reconsulta
+persona_x1 <- data.frame(
+  tipo_consulta = c(2),
+  pueblo_pertenencia = c(3),
+  sexo = c(2)
 )
 
+result <- predict(arbol3, persona_x1,  type = "prob")
+result
+
+#Hombre, del pueblo xinka y reconsulta
+persona_x1 <- data.frame(
+  tipo_consulta = c(2),
+  pueblo_pertenencia = c(3),
+  sexo = c(1)
+)
+
+result <- predict(arbol3, persona_x1,  type = "prob")
+result
+
+#Mujer, del pueblo maya y reconsulta
+persona_x1 <- data.frame(
+  tipo_consulta = c(2),
+  pueblo_pertenencia = c(1),
+  sexo = c(1)
+)
+
+result <- predict(arbol3, persona_x1,  type = "prob")
+result
 
 
+#Caso 4: Relación de las emergencias con el pueblo donde sucede, el sexo y el pueblo de pertenencia
+datos_emergencia <- data %>%
+  transmute(
+    consulta = ifelse(tipo_consulta == "3", 1, 0),
+    sexo,
+    pueblo_pertenencia,
+    deptoresiden
+  ) %>%
+  na.omit()
 
+datos_emergencia$consulta <- factor(datos_emergencia$consulta, levels = c(0,1),
+                            labels = c("No_3","Si_3"))
+
+table(datos_emergencia$consulta)
+set.seed(123)
+
+idx_1  <- which(datos_emergencia$consulta == "Si_3")
+idx_0  <- which(datos_emergencia$consulta == "No_3")
+
+
+n_1 <- length(idx_1)
+n_0_mostrar <- min(length(idx_0), n_1 * 4)
+
+idx_0_sub <- sample(idx_0, n_0_mostrar)
+
+datos_bal_emer <- datos_emergencia[c(idx_1, idx_0_sub), ]
+
+table(datos_bal_emer$consulta)
+
+
+arbol4 <- rpart(
+  consulta ~ pueblo_pertenencia + sexo + deptoresiden,
+  data   = datos_bal_emer,
+  method = "class",
+  control = rpart.control(minbucket = 50, cp = 0.001)  
+)
+
+rpart.plot(arbol4, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
+           main ="Consulta", cex = 0.4)
 
 
