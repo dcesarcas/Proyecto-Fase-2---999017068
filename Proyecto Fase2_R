@@ -228,4 +228,32 @@ arbol4 <- rpart(
 rpart.plot(arbol4, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
            main ="Consulta", cex = 0.4)
 
+#Hombre, ladino de santa Rosa
+persona_e1 <- data.frame(
+  deptoresiden = c(6),
+  pueblo_pertenencia = c(4),
+  sexo = c(1)
+)
 
+result <- predict(arbol4, persona_e1,  type = "prob")
+result
+
+#Mujer, maya de Sacatepequez
+persona_e1 <- data.frame(
+  deptoresiden = c(3),
+  pueblo_pertenencia = c(1),
+  sexo = c(2)
+)
+
+result <- predict(arbol4, persona_e1,  type = "prob")
+result
+
+#Mujer, ladina de peten
+persona_e1 <- data.frame(
+  deptoresiden = c(17),
+  pueblo_pertenencia = c(4),
+  sexo = c(2)
+)
+
+result <- predict(arbol4, persona_e1,  type = "prob")
+result
