@@ -6,7 +6,7 @@ library(tidyverse)
 library(janitor)
 library(rpart)
 library(rpart.plot)
-
+library(randomForest)
 
 ruta <- "C:\\Users\\Daniel\\Downloads\\data"   
 archivos <- list.files(ruta, pattern = "\\.xlsx$", full.names = TRUE)
@@ -257,3 +257,105 @@ persona_e1 <- data.frame(
 
 result <- predict(arbol4, persona_e1,  type = "prob")
 result
+
+
+
+#PARTE 2: RANDOM FOREST
+#Caso 1: El tipo de consulta en casos de dengues no especificado
+dato_dengue <- subset(data, causa_atencion == 'A90X')
+dato_dengue$tipo_consulta <- as.factor(dato_dengue$tipo_consulta)
+
+dato_dengue <- na.omit(dato_dengue)
+
+set.seed(100)
+
+dato_dengue <- dato_dengue[sample(1:nrow(dato_dengue)),]
+
+index <- sample(1:nrow(dato_dengue),0.8*nrow(dato_dengue))
+
+train <- dato_dengue[index,]
+test <- dato_dengue[-index,]
+
+
+bosque1 <- randomForest( tipo_consulta ~ 
+                          edad +
+                          sexo +
+                          deptoresiden + 
+                          pueblo_pertenencia,
+                        data = train, 
+                        ntree = 100,
+                        mtry = 4
+)
+
+prueba <- predict(bosque1, test) 
+prueba
+
+matriz <- table(test$tipo_consulta, prueba)
+matriz
+
+pre <- sum(diag(matriz))/sum(matriz)
+pre
+
+plot(bosque1)
+
+#Hombre garifuna de izabal de 10 años
+personaf1 <- data.frame(
+  edad = c(10),
+  sexo = c(1),
+  pueblo_pertenencia = c(2),
+  deptoresiden = c(18)
+  
+)
+
+result2 <- predict(bosque1, personaf1, type ="prob")
+result2
+
+#Mujer xinka de guatemala de 30 años
+personaf2 <- data.frame(
+  edad = c(30),
+  sexo = c(2),
+  pueblo_pertenencia = c(3),
+  deptoresiden = c(1)
+  
+)
+
+result2 <- predict(bosque1, personaf2, type ="prob")
+result2
+
+#Caso 2: el pueblo pertenencia sabiendo el tipo de consulta, deptoresiden, mes en casos de Bronconeumonía, no especificada
+
+
+dato_br <- subset(data, causa_atencion == 'J180')
+dato_br$pueblo_pertenencia <- as.factor(dato_br$pueblo_pertenencia)
+
+dato_br <- na.omit(dato_br)
+
+set.seed(100)
+
+dato_br <- dato_br[sample(1:nrow(dato_br)),]
+
+index <- sample(1:nrow(dato_br),0.8*nrow(dato_br))
+
+train <- dato_br[index,]
+test <- dato_br[-index,]
+
+
+bosque2 <- randomForest( pueblo_pertenencia ~ 
+                           tipo_consulta +
+                           mes +
+                           deptoresiden,
+                         data = train, 
+                         ntree = 100,
+                         mtry = 3
+)
+
+prueba <- predict(bosque2, test) 
+prueba
+
+matriz <- table(test$pueblo_pertenencia, prueba)
+matriz
+
+pre <- sum(diag(matriz))/sum(matriz)
+pre
+
+plot(bosque2)
