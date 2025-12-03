@@ -405,17 +405,21 @@ result2 <- predict(bosque2, personab1, type ="prob")
 result2
 
 #Caso 3: la edad en los casos de amenaza de aborto relacionados con el pueblo de pertenencia, departamento donde residen y el mes
-dato_ab <- subset(data, causa_atencion == 'O200') 
+dato_ab <- subset(data, causa_atencion == "O200")
 
-dato_ab$edad <- as.factor(dato_ab$pueblo_pertenencia) 
+dato_ab$edad <- as.factor(dato_ab$edad)
+dato_ab <- na.omit(dato_ab)
 
-dato_ab <- na.omit(dato_ab) set.seed(100) 
+set.seed(100)
+dato_ab <- dato_ab[sample(1:nrow(dato_ab)), ]
 
-dato_ab <- dato_ab[sample(1:nrow(dato_ab)),] 
+index <- sample(1:nrow(dato_ab), 0.8*nrow(dato_ab))
+train  <- dato_ab[index, ]
+test   <- dato_ab[-index, ]
 
-index <- sample(1:nrow(dato_ab),0.8*nrow(dato_ab)) 
-train <- dato_ab[index,] 
-test <- dato_ab[-index,] 
+#eliminar niveles vacíos en y (edad)
+train$edad <- droplevels(train$edad)
+test$edad  <- factor(test$edad, levels = levels(train$edad))
 
 bosque3 <- randomForest( edad ~ 
                            pueblo_pertenencia + 
@@ -423,6 +427,7 @@ bosque3 <- randomForest( edad ~
                          data = train, 
                          ntree = 100, 
                          mtry = 3 ) 
+
 prueba <- predict(bosque3, test) 
 prueba 
 matriz <- table(test$edad, prueba) 
@@ -430,3 +435,38 @@ matriz
 pre <- sum(diag(matriz))/sum(matriz) 
 pre 
 plot(bosque3)
+
+
+#Persona garifuna con amenaza de aborto en abrl en Izabal
+personaa1 <- data.frame(
+  pueblo_pertenencia = c(2),
+  mes = c(4),
+  deptoresiden = c(18)
+  
+)
+
+result2 <- predict(bosque3, personaa1, type ="prob")
+sort(result2[1, ], decreasing = TRUE)[1:10]
+
+#Persona ladina con amenaza de aborto en octubre en Huehuetenango
+personaa1 <- data.frame(
+  pueblo_pertenencia = c(4),
+  mes = c(10),
+  deptoresiden = c(13)
+  
+)
+
+result2 <- predict(bosque3, personaa1, type ="prob")
+sort(result2[1, ], decreasing = TRUE)[1:10]
+
+#Persona xinka con amenaza de aborto en febrero en Totonicapan
+personaa1 <- data.frame(
+  pueblo_pertenencia = c(3),
+  mes = c(2),
+  deptoresiden = c(8)
+  
+)
+
+result2 <- predict(bosque3, personaa1, type ="prob")
+sort(result2[1, ], decreasing = TRUE)[1:10]
+
