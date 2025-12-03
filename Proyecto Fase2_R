@@ -359,3 +359,74 @@ pre <- sum(diag(matriz))/sum(matriz)
 pre
 
 plot(bosque2)
+
+#Emergencias en noviembre en Suchitepequez
+personab1 <- data.frame(
+  tipo_consulta = c(3),
+  mes = c(11),
+  deptoresiden = c(10)
+  
+)
+
+result2 <- predict(bosque2, personab1, type ="prob")
+result2
+
+#Primera consulta en julio en Escuintla
+personab1 <- data.frame(
+  tipo_consulta = c(1),
+  mes = c(7),
+  deptoresiden = c(5)
+  
+)
+
+result2 <- predict(bosque2, personab1, type ="prob")
+result2
+
+#Primera consulta en julio en Quiche
+personab1 <- data.frame(
+  tipo_consulta = c(1),
+  mes = c(7),
+  deptoresiden = c(14)
+  
+)
+
+result2 <- predict(bosque2, personab1, type ="prob")
+result2
+
+#Reconsulta en julio en santa Rosa
+personab1 <- data.frame(
+  tipo_consulta = c(2),
+  mes = c(9),
+  deptoresiden = c(6)
+  
+)
+
+result2 <- predict(bosque2, personab1, type ="prob")
+result2
+
+#Caso 3: la edad en los casos de amenaza de aborto relacionados con el pueblo de pertenencia, departamento donde residen y el mes
+dato_ab <- subset(data, causa_atencion == 'O200') 
+
+dato_ab$edad <- as.factor(dato_ab$pueblo_pertenencia) 
+
+dato_ab <- na.omit(dato_ab) set.seed(100) 
+
+dato_ab <- dato_ab[sample(1:nrow(dato_ab)),] 
+
+index <- sample(1:nrow(dato_ab),0.8*nrow(dato_ab)) 
+train <- dato_ab[index,] 
+test <- dato_ab[-index,] 
+
+bosque3 <- randomForest( edad ~ 
+                           pueblo_pertenencia + 
+                           mes + deptoresiden, 
+                         data = train, 
+                         ntree = 100, 
+                         mtry = 3 ) 
+prueba <- predict(bosque3, test) 
+prueba 
+matriz <- table(test$edad, prueba) 
+matriz 
+pre <- sum(diag(matriz))/sum(matriz) 
+pre 
+plot(bosque3)
