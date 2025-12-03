@@ -39,7 +39,8 @@ data <- datos %>%
   )
 
 #PARTE 1 ARBOLES DE DECISION
-#Caso 1: Emergencias en la capital - Rinofaringitis aguda [resfriado común]
+#Caso 1: Consultas de Emergencia en la Capital — Rinofaringitis Aguda
+
 datos_mayores_emergencias <- subset(data, tipo_consulta == 3)
 datos_mayores_emergencias <- subset(datos_mayores_emergencias, deptoresiden == 1)
 datos_mayores_emergencias <- subset(datos_mayores_emergencias, causa_atencion != 'A099')
@@ -53,7 +54,7 @@ rpart.plot(arbol1, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.pa
            main ="causa de atencion", cex = 0.5
            
 )
-#Una mujer con edad de 25 y que se haya enfermado en octubre
+#Perfil 1: Mujer de 25 años, enferma en octubre
 persona1 <- data.frame(
   edad = 25,
   mes  = factor("10", levels = levels(datos_mayores_emergencias$mes)),
@@ -63,7 +64,7 @@ persona1 <- data.frame(
 result1 <- predict(arbol1, persona1,  type = "prob")
 sort(result1[1, ], decreasing = TRUE)[1:10] #Escoger solo el top 10 de casos
 
-#Hombre de 10 años, enfermo en julio
+#Perfil 2: Hombre de 10 años, enfermo en julio
 persona2 <- data.frame(
   edad = 10,
   mes  = factor("7", levels = levels(datos_mayores_emergencias$mes)),
@@ -73,7 +74,7 @@ persona2 <- data.frame(
 result2 <- predict(arbol1, persona2,  type = "prob")
 sort(result2[1, ], decreasing = TRUE)[1:10] #Escoger solo el top 10 de casos
 
-#Mujer de 5 años, enferma en enero
+#Perfil 3: Mujer de 5 años, enferma en enero
 persona3 <- data.frame(
   edad = 5,
   mes  = factor("1", levels = levels(datos_mayores_emergencias$mes)),
@@ -84,7 +85,7 @@ result3 <- predict(arbol1, persona3,  type = "prob")
 sort(result3[1, ], decreasing = TRUE)[1:10] #Escoger solo el top 10 de casos
 
 
-#Caso 2 para Gastroenteritis y colitis de origen no especificado
+#Caso 2: Tipo de Consulta en Pacientes con Gastroenteritis (Código A099)
 datos_gastro <- subset(data, causa_atencion ==  "A099")
 datos_gastro <- datos_gastro[,c("edad","mes","deptoresiden","tipo_consulta")]
 
@@ -98,7 +99,7 @@ rpart.plot(arbol2, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.pa
            main ="Tipo de consulta", cex = 0.5
            
 )
-#Joven de 15 años, con consulta hecha en noviembre y en suchitepequez
+#Perfil 1: Adolescente de 15 años, en noviembre, residente en Retalhuleu
 persona_g1 <- data.frame(
   edad = 15,
   mes  = factor("11", levels = levels(datos_gastro$mes)),
@@ -108,7 +109,7 @@ persona_g1 <- data.frame(
 result <- predict(arbol2, persona_g1,  type = "prob")
 result
 
-#Adulto de 54 años, con consulta hecha en marzo y en Peten
+#Perfil 2: Adulto de 54 años, en marzo, residente en Petén
 persona_g2 <- data.frame(
   edad = 54,
   mes  = factor("3", levels = levels(datos_gastro$mes)),
@@ -118,7 +119,7 @@ persona_g2 <- data.frame(
 result <- predict(arbol2, persona_g1,  type = "prob")
 result
 
-#Caso 3: La enfermedad de Acné vulgar en relación con el pueblo Xinka, el sexo y el tipo de consulta
+#Caso 3: Diagnóstico de Acné Vulgar y Asociación con Pueblo de Pertenencia
 datos_xinka <- data %>%
   transmute(
     causa = ifelse(causa_atencion == "L700", 1, 0),
@@ -157,7 +158,7 @@ arbol3 <- rpart(
 rpart.plot(arbol3, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
            main ="Causa", cex = 0.5)
 
-#Mujer, del pueblo xinka y reconsulta
+#Perfil 1: Mujer del pueblo Xinka, en reconsulta
 persona_x1 <- data.frame(
   tipo_consulta = c(2),
   pueblo_pertenencia = c(3),
@@ -167,7 +168,7 @@ persona_x1 <- data.frame(
 result <- predict(arbol3, persona_x1,  type = "prob")
 result
 
-#Hombre, del pueblo xinka y reconsulta
+#Perfil 2: Hombre del pueblo Xinka, en reconsulta
 persona_x1 <- data.frame(
   tipo_consulta = c(2),
   pueblo_pertenencia = c(3),
@@ -177,7 +178,7 @@ persona_x1 <- data.frame(
 result <- predict(arbol3, persona_x1,  type = "prob")
 result
 
-#Mujer, del pueblo maya y reconsulta
+#Perfil 3: Mujer maya, en reconsulta
 persona_x1 <- data.frame(
   tipo_consulta = c(2),
   pueblo_pertenencia = c(1),
@@ -188,7 +189,7 @@ result <- predict(arbol3, persona_x1,  type = "prob")
 result
 
 
-#Caso 4: Relación de las emergencias con el pueblo donde sucede, el sexo y el pueblo de pertenencia
+#Caso 4: Factores Sociodemográficos Asociados a Consultas de Emergencia
 datos_emergencia <- data %>%
   transmute(
     consulta = ifelse(tipo_consulta == "3", 1, 0),
@@ -228,7 +229,7 @@ arbol4 <- rpart(
 rpart.plot(arbol4, type = 2, extra =0, under = TRUE, fallen.leaves =TRUE, box.palette ="BuGn",
            main ="Consulta", cex = 0.4)
 
-#Hombre, ladino de santa Rosa
+#Perfil 1: Hombre ladino de Santa Rosa
 persona_e1 <- data.frame(
   deptoresiden = c(6),
   pueblo_pertenencia = c(4),
@@ -238,7 +239,7 @@ persona_e1 <- data.frame(
 result <- predict(arbol4, persona_e1,  type = "prob")
 result
 
-#Mujer, maya de Sacatepequez
+#Perfil 2: Mujer maya de Sacatepéquez
 persona_e1 <- data.frame(
   deptoresiden = c(3),
   pueblo_pertenencia = c(1),
@@ -248,7 +249,7 @@ persona_e1 <- data.frame(
 result <- predict(arbol4, persona_e1,  type = "prob")
 result
 
-#Mujer, ladina de peten
+#Perfil 3: Mujer ladina de Petén
 persona_e1 <- data.frame(
   deptoresiden = c(17),
   pueblo_pertenencia = c(4),
@@ -261,7 +262,7 @@ result
 
 
 #PARTE 2: RANDOM FOREST
-#Caso 1: El tipo de consulta en casos de dengues no especificado
+#Caso 1: Predicción del Tipo de Consulta en Casos de Dengue
 dato_dengue <- subset(data, causa_atencion == 'A90X')
 dato_dengue$tipo_consulta <- as.factor(dato_dengue$tipo_consulta)
 
@@ -298,7 +299,7 @@ pre
 
 plot(bosque1)
 
-#Hombre garifuna de izabal de 10 años
+#Perfil 1: Hombre de 10 años, garífuna, residente en Izabal
 personaf1 <- data.frame(
   edad = c(10),
   sexo = c(1),
@@ -310,7 +311,7 @@ personaf1 <- data.frame(
 result2 <- predict(bosque1, personaf1, type ="prob")
 result2
 
-#Mujer xinka de guatemala de 30 años
+#Perfil 2: Mujer Xinka de 30 años, residente en Guatemala
 personaf2 <- data.frame(
   edad = c(30),
   sexo = c(2),
@@ -322,7 +323,7 @@ personaf2 <- data.frame(
 result2 <- predict(bosque1, personaf2, type ="prob")
 result2
 
-#Caso 2: el pueblo pertenencia sabiendo el tipo de consulta, deptoresiden, mes en casos de Bronconeumonía, no especificada
+#Caso 2: Predicción del Pueblo de Pertenencia en Casos de Bronconeumonía
 
 
 dato_br <- subset(data, causa_atencion == 'J180')
@@ -360,7 +361,7 @@ pre
 
 plot(bosque2)
 
-#Emergencias en noviembre en Suchitepequez
+#Perfil 1: Caso de emergencia en noviembre en Suchitepéquez
 personab1 <- data.frame(
   tipo_consulta = c(3),
   mes = c(11),
@@ -371,7 +372,7 @@ personab1 <- data.frame(
 result2 <- predict(bosque2, personab1, type ="prob")
 result2
 
-#Primera consulta en julio en Escuintla
+#Perfil 2: Primera consulta en julio en Escuintla
 personab1 <- data.frame(
   tipo_consulta = c(1),
   mes = c(7),
@@ -382,7 +383,8 @@ personab1 <- data.frame(
 result2 <- predict(bosque2, personab1, type ="prob")
 result2
 
-#Primera consulta en julio en Quiche
+#Perfil 3: Primera consulta en julio en Quiché
+
 personab1 <- data.frame(
   tipo_consulta = c(1),
   mes = c(7),
@@ -393,7 +395,8 @@ personab1 <- data.frame(
 result2 <- predict(bosque2, personab1, type ="prob")
 result2
 
-#Reconsulta en julio en santa Rosa
+#Perfil 4: Reconsulta en julio en Santa Rosa
+
 personab1 <- data.frame(
   tipo_consulta = c(2),
   mes = c(9),
@@ -404,7 +407,7 @@ personab1 <- data.frame(
 result2 <- predict(bosque2, personab1, type ="prob")
 result2
 
-#Caso 3: la edad en los casos de amenaza de aborto relacionados con el pueblo de pertenencia, departamento donde residen y el mes
+#Caso 3: Predicción de la Edad en Casos de Amenaza de Aborto
 dato_ab <- subset(data, causa_atencion == "O200")
 
 dato_ab$edad <- as.factor(dato_ab$edad)
@@ -417,7 +420,7 @@ index <- sample(1:nrow(dato_ab), 0.8*nrow(dato_ab))
 train  <- dato_ab[index, ]
 test   <- dato_ab[-index, ]
 
-#eliminar niveles vacíos en y (edad)
+#Perfil 1: Mujer garífuna en abril en Izabal
 train$edad <- droplevels(train$edad)
 test$edad  <- factor(test$edad, levels = levels(train$edad))
 
@@ -437,7 +440,7 @@ pre
 plot(bosque3)
 
 
-#Persona garifuna con amenaza de aborto en abrl en Izabal
+#Perfil 2: Mujer ladina en octubre en Huehuetenango
 personaa1 <- data.frame(
   pueblo_pertenencia = c(2),
   mes = c(4),
@@ -459,7 +462,7 @@ personaa1 <- data.frame(
 result2 <- predict(bosque3, personaa1, type ="prob")
 sort(result2[1, ], decreasing = TRUE)[1:10]
 
-#Persona xinka con amenaza de aborto en febrero en Totonicapan
+#Perfil 3: Mujer Xinka en febrero en Totonicapán
 personaa1 <- data.frame(
   pueblo_pertenencia = c(3),
   mes = c(2),
