@@ -1,0 +1,361 @@
+---
+title: "Documentación Técnica — Árboles de Decisión y Random Forest en Salud Pública
+  - 999017068"
+author: "César Daniel Castro de la Roca"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+# Documentación Técnica del Proyecto de Minería de Datos en Salud Pública  
+**Árboles de Decisión (rpart) y Random Forest aplicados a consultas hospitalarias**
+
+---
+
+## 1. Objetivo del proyecto
+
+El objetivo de este proyecto es analizar una base de datos de consultas hospitalarias en Guatemala para:
+
+- Identificar patrones en causas de atención y tipos de consulta.
+- Evaluar la influencia de variables sociodemográficas (sexo, edad, departamento, pueblo de pertenencia).
+- Construir modelos de **árboles de decisión** y **random forest** que permitan:
+  - Explicar reglas de decisión.
+  - Estimar probabilidades para distintos perfiles de pacientes.
+
+---
+
+## 2. Descripción general de los datos
+
+- Fuente: archivos `.xlsx` con registros de consultas hospitalarias.
+- Ubicación local (ejemplo):  
+
+  `C:\Users\Daniel\Downloads\data`
+
+- Contenido esperado por registro (columnas principales):
+  - `ano`: año de la consulta.
+  - `mes`: mes de la consulta.
+  - `edad`: edad del paciente.
+  - `sexo`: sexo del paciente (codificado numéricamente).
+  - `deptoresiden`: departamento de residencia.
+  - `ppertenencia`: pueblo de pertenencia.
+  - `periodoeda`: periodo de edad categorizado.
+  - `muniresiden`: municipio de residencia.
+  - `tc`: tipo de consulta (1, 2, 3, etc.).
+  - `caufin`: causa de atención (códigos CIE, por ejemplo: A099, A90X, L700, J180, O200).
+
+> Nota: es importante que todos los archivos de la carpeta tengan la misma estructura de columnas.
+
+---
+
+## 3. Entorno de ejecución e instalación
+
+### 3.1. Versión de R y RStudio
+
+- R versión recomendada: **4.x o superior**.  
+
+### 3.2. Paquetes necesarios
+
+El proyecto utiliza los siguientes paquetes:
+
+- `arules`  
+- `ggplot2`  
+- `readxl`  
+- `utf8`  
+- `tidyverse` (incluye `dplyr`, `purrr`, etc.)  
+- `janitor`  
+- `rpart`  
+- `rpart.plot`  
+- `randomForest`  
+
+Instalación (solo es necesario la primera vez):
+
+```{r install-packages, eval=FALSE}
+install.packages(c(
+  "arules",
+  "ggplot2",
+  "readxl",
+  "utf8",
+  "tidyverse",
+  "janitor",
+  "rpart",
+  "rpart.plot",
+  "randomForest"
+))
+```
+---
+## 4. Cómo Ejecutar en Otro Entorno
+
+1. Colocar los .xlsx dentro de la carpeta data/
+2. Ejecutar el script
+---
+##5. Preparación y limpieza del script
+---
+```{r limpieza_carga, echo=FALSE}
+library(arules)
+library(ggplot2)
+library(readxl)
+library(utf8)
+library(tidyverse)
+library(janitor)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+
+
+ruta <- "C:\\Users\\Daniel\\Downloads\\data"   
+archivos <- list.files(ruta, pattern = "\\.xlsx$", full.names = TRUE)
+
+leer_limpio <- function(path) {
+read_excel(path) |>
+clean_names() |>
+mutate(source_file = basename(path))
+}
+
+base_unificada <- map_dfr(archivos, leer_limpio)
+
+base_unificada <- base_unificada |>
+mutate(
+ano = as.integer(ano),
+mes = as.character(mes),
+edad = as.integer(edad)
+) |>
+distinct()
+
+datos <- select(base_unificada, -last_col())
+
+data <- datos %>%
+rename(
+pueblo_pertenencia = ppertenencia,
+periodo_edad = periodoeda,
+municipio_residencia = muniresiden,
+tipo_consulta = tc,
+causa_atencion = caufin
+)
+```
+---
+#6. Modelos de Árboles de decision
+---
+```{r arboles, echo=FALSE}
+#Caso 1: Consultas de Emergencia en la Capital
+datos_mayores_emergencias <- subset(data, tipo_consulta == 3)
+datos_mayores_emergencias <- subset(datos_mayores_emergencias, deptoresiden == 1)
+datos_mayores_emergencias <- subset(datos_mayores_emergencias, causa_atencion != "A099")
+
+arbol1 <- rpart(
+causa_atencion ~ edad + mes + sexo,
+data = datos_mayores_emergencias,
+method = "class"
+)
+
+rpart.plot(arbol1, type = 2, extra = 0, fallen.leaves = TRUE, cex = 0.5)
+
+#Perfiles Evaluados 
+#Como son muchos tipos de consulta, se utilizó el decreasing para filtrar solo el top 10
+persona1 <- data.frame(edad=25, mes=factor("10", levels=levels(datos_mayores_emergencias$mes)), sexo=2)
+sort(predict(arbol1, persona1, type="prob")[1,], decreasing=TRUE)[1:10]  
+
+persona2 <- data.frame(edad=10, mes=factor("7", levels=levels(datos_mayores_emergencias$mes)), sexo=1)
+sort(predict(arbol1, persona2, type="prob")[1,], decreasing=TRUE)[1:10]
+
+persona3 <- data.frame(edad=5, mes=factor("1", levels=levels(datos_mayores_emergencias$mes)), sexo=2)
+sort(predict(arbol1, persona3, type="prob")[1,], decreasing=TRUE)[1:10]
+
+#Caso 2: Tipo de Consulta en Pacientes con Gastroenteritis (A099)
+datos_gastro <- subset(data, causa_atencion == "A099")
+datos_gastro <- datos_gastro[,c("edad","mes","deptoresiden","tipo_consulta")]
+
+arbol2 <- rpart(
+tipo_consulta ~ edad + mes + deptoresiden,
+data = datos_gastro,
+method = "class"
+)
+
+rpart.plot(arbol2, type=2, fallen.leaves=TRUE, cex=0.5)
+
+#Perfiles Evaluados
+#Se convirtió a factor el mes para poder tener mejor uso de esta variables
+persona_g1 <- data.frame(edad=15, mes=factor("11", levels=levels(datos_gastro$mes)), deptoresiden=11)
+predict(arbol2, persona_g1, type="prob")
+
+persona_g2 <- data.frame(edad=54, mes=factor("3", levels=levels(datos_gastro$mes)), deptoresiden=22)
+predict(arbol2, persona_g2, type="prob")
+
+#Caso 3: Diagnóstico de Acné Vulgar y Pueblo de Pertenencia
+#Acá se realizó un balanceo, debido que se quería ver solo en los casos L700.La cantidad de registros pertenecientes a L700 era considerablemente menor en comparación con los que no. Se seleccionó únicamente una fracción proporcional de la clase mayoritaria, utilizando una relación 1:4
+datos_xinka <- data %>%
+transmute(
+causa = ifelse(causa_atencion == "L700", 1, 0),
+sexo,
+pueblo_pertenencia,
+tipo_consulta
+) %>%
+na.omit()
+
+datos_xinka$causa <- factor(datos_xinka$causa, labels=c("No_L700","Si_L700"))
+
+idx_1 <- which(datos_xinka$causa=="Si_L700")
+idx_0 <- which(datos_xinka$causa=="No_L700")
+idx_0_sub <- sample(idx_0, min(length(idx_0), length(idx_1)*4))
+datos_bal <- datos_xinka[c(idx_1, idx_0_sub),]
+
+arbol3 <- rpart(
+causa ~ pueblo_pertenencia + sexo + tipo_consulta,
+data = datos_bal,
+method = "class",
+control = rpart.control(minbucket = 50, cp = 0.001)
+)
+
+rpart.plot(arbol3, type=2, fallen.leaves=TRUE, cex=0.5)
+#Perfiles Evaluados
+persona_x1 <- data.frame(tipo_consulta=2, pueblo_pertenencia=3, sexo=2)
+predict(arbol3, persona_x1, type="prob")
+
+persona_x2 <- data.frame(tipo_consulta=2, pueblo_pertenencia=3, sexo=1)
+predict(arbol3, persona_x2, type="prob")
+
+persona_x3 <- data.frame(tipo_consulta=2, pueblo_pertenencia=1, sexo=2)
+predict(arbol3, persona_x3, type="prob")
+
+#Caso 4: Factores Asociados a Consultas de Emergencia
+#Acá de igual forma de utilizó el balanceo
+datos_emergencia <- data %>%
+transmute(
+consulta = ifelse(tipo_consulta=="3",1,0),
+sexo,
+pueblo_pertenencia,
+deptoresiden
+) %>%
+na.omit()
+
+datos_emergencia$consulta <- factor(datos_emergencia$consulta, labels=c("No_3","Si_3"))
+
+idx_1 <- which(datos_emergencia$consulta=="Si_3")
+idx_0 <- which(datos_emergencia$consulta=="No_3")
+idx_0_sub <- sample(idx_0, min(length(idx_0), length(idx_1)*4))
+datos_bal_emer <- datos_emergencia[c(idx_1, idx_0_sub),]
+
+arbol4 <- rpart(
+consulta ~ pueblo_pertenencia + sexo + deptoresiden,
+data = datos_bal_emer,
+method = "class"
+)
+
+rpart.plot(arbol4, type=2, fallen.leaves=TRUE, cex=0.4)
+
+#Perfiles Evaluados
+persona_e1 <- data.frame(deptoresiden=6, pueblo_pertenencia=4, sexo=1)
+predict(arbol4, persona_e1, type="prob")
+
+persona_e2 <- data.frame(deptoresiden=3, pueblo_pertenencia=1, sexo=2)
+predict(arbol4, persona_e2, type="prob")
+
+persona_e3 <- data.frame(deptoresiden=17, pueblo_pertenencia=4, sexo=2)
+predict(arbol4, persona_e3, type="prob")
+
+
+
+```
+---
+#7. Modelos Random Forest 
+---
+```{r random_forest, eval=FALSE}
+#Caso 1: Tipo de Consulta en Casos de Dengue
+dato_dengue <- subset(data, causa_atencion=="A90X")
+dato_dengue$tipo_consulta <- as.factor(dato_dengue$tipo_consulta)
+dato_dengue <- na.omit(dato_dengue)
+
+set.seed(100)
+dato_dengue <- dato_dengue[sample(1:nrow(dato_dengue)),]
+
+index <- sample(1:nrow(dato_dengue),0.8*nrow(dato_dengue))
+train <- dato_dengue[index,]
+test  <- dato_dengue[-index,]
+
+bosque1 <- randomForest(
+tipo_consulta ~ edad + sexo + deptoresiden + pueblo_pertenencia,
+data=train, ntree=100, mtry=4
+)
+
+predict(bosque1, test)
+table(test$tipo_consulta, predict(bosque1, test))
+plot(bosque1)
+
+#Perfiles Evaluados
+personaf1 <- data.frame(edad=10, sexo=1, pueblo_pertenencia=2, deptoresiden=18)
+predict(bosque1, personaf1, type="prob")
+
+personaf2 <- data.frame(edad=30, sexo=2, pueblo_pertenencia=3, deptoresiden=1)
+predict(bosque1, personaf2, type="prob")
+
+#Caso 2: Pueblo de Pertenencia en Casos de Bronconeumonía
+dato_br <- subset(data, causa_atencion=="J180")
+dato_br$pueblo_pertenencia <- as.factor(dato_br$pueblo_pertenencia)
+dato_br <- na.omit(dato_br)
+
+set.seed(100)
+dato_br <- dato_br[sample(1:nrow(dato_br)),]
+
+index <- sample(1:nrow(dato_br),0.8*nrow(dato_br))
+train <- dato_br[index,]
+test  <- dato_br[-index,]
+
+bosque2 <- randomForest(
+pueblo_pertenencia ~ tipo_consulta + mes + deptoresiden,
+data=train, ntree=100, mtry=3
+)
+
+predict(bosque2, test)
+plot(bosque2)
+
+#Perfiles Evaluados
+personab1 <- data.frame(tipo_consulta=3, mes=11, deptoresiden=10)
+predict(bosque2, personab1, type="prob")
+
+personab2 <- data.frame(tipo_consulta=1, mes=7, deptoresiden=5)
+predict(bosque2, personab2, type="prob")
+
+personab3 <- data.frame(tipo_consulta=1, mes=7, deptoresiden=14)
+predict(bosque2, personab3, type="prob")
+
+personab4 <- data.frame(tipo_consulta=2, mes=9, deptoresiden=6)
+predict(bosque2, personab4, type="prob")
+
+#Caso 3: Predicción de Edad en Amenaza de Aborto
+dato_ab <- subset(data, causa_atencion=="O200")
+dato_ab$edad <- as.factor(dato_ab$edad)
+dato_ab <- na.omit(dato_ab)
+
+set.seed(100)
+dato_ab <- dato_ab[sample(1:nrow(dato_ab)),]
+
+index <- sample(1:nrow(dato_ab),0.8*nrow(dato_ab))
+train <- dato_ab[index,]
+test  <- dato_ab[-index,]
+
+train$edad <- droplevels(train$edad)
+test$edad  <- factor(test$edad, levels=levels(train$edad))
+
+bosque3 <- randomForest(
+edad ~ pueblo_pertenencia + mes + deptoresiden,
+data=train, ntree=100, mtry=3
+)
+
+plot(bosque3)
+
+#Perfiles Evaluados
+personaa1 <- data.frame(pueblo_pertenencia=2, mes=4, deptoresiden=18)
+sort(predict(bosque3, personaa1, type="prob")[1,], decreasing=TRUE)[1:10]
+
+personaa2 <- data.frame(pueblo_pertenencia=4, mes=10, deptoresiden=13)
+sort(predict(bosque3, personaa2, type="prob")[1,], decreasing=TRUE)[1:10]
+
+personaa3 <- data.frame(pueblo_pertenencia=3, mes=2, deptoresiden=8)
+sort(predict(bosque3, personaa3, type="prob")[1,], decreasing=TRUE)[1:10]
+
+```
+---
+## 8. Resultados Generados
+1. Analisis de los algoritmos.
+2. Gráficas de los árboles de decisión.
+3. Gráficas de los errores en randomForest
